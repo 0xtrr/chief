@@ -90,7 +90,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 println!("blacklisted word {}", value);
             }
             Ok(None) => {
-                res.action = String::from("accepted");
+                res.action = String::from("accept");
                 res.msg = None;
                 println!("new event {}", req.event.id.to_hex())
             }
