@@ -92,7 +92,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             Ok(None) => {
                 res.action = String::from("accept");
                 res.msg = None;
-                println!("new event {}", req.event.id.to_hex())
             }
             Err(err) => {
                 eprintln!("error checking blacklist: {}", err)
