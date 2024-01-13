@@ -1,9 +1,9 @@
 [filters]
 public_key = true
-public_key_filter_mode = "Blacklist"
+public_key_filter_mode = "InvalidFilterMode"
 kind = true
-kind_filter_mode = "Blacklist"
-word = true
+kind_filter_mode = "InvalidFilterMode"
+word = false
 
 [database]
 host = "localhost"

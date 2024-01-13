@@ -1,11 +1,16 @@
+mod engine;
+
 use nostr_sdk::Event;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
-use std::fs;
+use std::process;
 use tokio::io::{stdin, stdout, AsyncWriteExt};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio_postgres::{Error as PGError, NoTls};
+use crate::engine::config::load_config;
+use crate::engine::validation::{BlockedType, validate_event};
 
+/// Represents a request from the relay
 #[derive(Deserialize)]
 struct Request {
     #[serde(rename = "type")]
@@ -13,6 +18,8 @@ struct Request {
     event: Event,
 }
 
+
+/// Represents the response we provide back to the relay
 #[derive(Serialize)]
 struct Response {
     id: String,
@@ -21,23 +28,17 @@ struct Response {
     msg: Option<String>,
 }
 
-#[derive(Deserialize)]
-struct Config {
-    database: DatabaseConfig,
-}
-
-#[derive(Deserialize)]
-struct DatabaseConfig {
-    host: String,
-    port: String,
-    user: String,
-    password: String,
-    dbname: String,
-}
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let config = load_config("/etc/chief.toml");
+
+    // Load config
+    let config = match load_config("/etc/chief.toml") {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            eprintln!("Failed to load config: {:?}", e);
+            process::exit(1);
+        }
+    };
 
     // Connect to the database
     let (client, connection) = tokio_postgres::connect(
@@ -62,31 +63,38 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
+    // Set up stdin and stdout handles
     let mut reader = BufReader::new(stdin()).lines();
     let mut writer = stdout();
 
     while let Some(line) = reader.next_line().await.unwrap() {
+        // Deserialize request from strfry
         let req: Request = serde_json::from_str(&line)?;
 
+        // Type is currently always "new", anything else is an error as per Strfry documentation
         if req.type_field != "new" {
             eprintln!("unexpected request type {}", req.type_field);
             continue;
         }
 
+        // Build default response
         let mut res = Response {
             id: req.event.id.to_hex(),
             action: String::from("reject"),
             msg: Some(String::from("blocked")),
         };
 
-        match is_blacklisted(&client, &req.event).await {
-            Ok(Some((BlacklistType::Pubkey, value))) => {
-                println!("blacklisted publickey {}", value);
+        // Validates if the event should be persisted or not against a set of filters and modifies the response thereafter
+        match validate_event(&client, &req.event, &config.filters).await {
+            Ok(Some((BlockedType::Pubkey, value))) => {
+                res.msg = Some(String::from("public key does not have permission to write to relay"));
+                println!("public key {} blocked from writing to relay", value);
             }
-            Ok(Some((BlacklistType::Kind, value))) => {
-                println!("blacklisted kind {}", value);
+            Ok(Some((BlockedType::Kind, value))) => {
+                res.msg = Some(String::from("event kind blocked by relay"));
+                println!("kind {} not accepted", value);
             }
-            Ok(Some((BlacklistType::Word, value))) => {
+            Ok(Some((BlockedType::Word, value))) => {
                 println!("blacklisted word {}", value);
             }
             Ok(None) => {
@@ -94,10 +102,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 res.msg = None;
             }
             Err(err) => {
-                eprintln!("error checking blacklist: {}", err)
+                eprintln!("error validating event: {}", err)
             }
         }
 
+        // Output result of event validation, this is picked up by strfry for further processing
         writer
             .write_all(serde_json::to_string(&res)?.as_bytes())
             .await
@@ -106,66 +115,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 
     Ok(())
-}
-
-#[derive(Debug)]
-enum BlacklistType {
-    Pubkey,
-    Kind,
-    Word,
-}
-
-async fn is_blacklisted(
-    client: &tokio_postgres::Client,
-    event: &Event,
-) -> Result<Option<(BlacklistType, String)>, Box<dyn Error>> {
-    // Prepare the SQL query for checking if a pubkey exists in the blacklisted_pubkeys
-    let blacklisted_pubkey_stmt = client
-        .prepare("SELECT pubkey FROM blacklisted_pubkeys WHERE pubkey = $1")
-        .await?;
-    let blacklisted_kind_stmt = client
-        .prepare("SELECT kind FROM blacklisted_kinds WHERE kind = $1")
-        .await?;
-    let blacklisted_word_stmt = client
-        .prepare("SELECT word FROM blacklisted_words WHERE $1 ILIKE '%' || word || '%'")
-        .await?;
-
-    // Check for blacklisted public key
-    let rows = client
-        .query(&blacklisted_pubkey_stmt, &[&event.pubkey.to_string()])
-        .await?;
-
-    if !rows.is_empty() {
-        return Ok(Some((BlacklistType::Pubkey, event.pubkey.to_string())));
-    }
-
-    // Check for blacklisted kind
-
-    // We have to cast the event kind u32 to i32 to make tokio_postgres happy
-    let i32_kind = event.kind.as_u32() as i32;
-    let rows = client.query(&blacklisted_kind_stmt, &[&i32_kind]).await?;
-
-    if !rows.is_empty() {
-        return Ok(Some((BlacklistType::Kind, event.kind.to_string())));
-    }
-
-    // Check for blacklisted word
-    let rows = client
-        .query(&blacklisted_word_stmt, &[&event.content.to_string()])
-        .await?;
-
-    if !rows.is_empty() {
-        let matched_words: Vec<String> = rows
-            .iter()
-            .map(|row| row.get::<_, String>("word"))
-            .collect();
-
-        let matched_string = matched_words.join(", ");
-
-        return Ok(Some((BlacklistType::Word, matched_string)));
-    }
-
-    Ok(None)
 }
 
 // Handling the error in case the database query fails
@@ -181,9 +130,4 @@ impl From<MyPGError> for Box<dyn Error> {
     fn from(error: MyPGError) -> Box<dyn Error> {
         Box::new(error.0)
     }
-}
-
-fn load_config(filename: &str) -> Config {
-    let content = fs::read_to_string(filename).expect("Error reading the config file");
-    toml::from_str(&content).expect("Error parsing the config file")
 }

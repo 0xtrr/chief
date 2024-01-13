@@ -1,9 +1,9 @@
 [filters]
 public_key = true
-public_key_filter_mode = "Blacklist"
+public_key_filter_mode = "Whitelist"
 kind = true
 kind_filter_mode = "Blacklist"
-word = true
+word = false
 
 [database]
 host = "localhost"
