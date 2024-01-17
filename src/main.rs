@@ -1,5 +1,10 @@
 mod engine;
 
+use crate::engine::config::{load_config, DataSource};
+use crate::engine::validation;
+use crate::engine::validation::{
+    validate_event, BlockedType, JsonDataSource, ValidationDataSource,
+};
 use nostr_sdk::Event;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
@@ -7,8 +12,6 @@ use std::process;
 use tokio::io::{stdin, stdout, AsyncWriteExt};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio_postgres::{Error as PGError, NoTls};
-use crate::engine::config::load_config;
-use crate::engine::validation::{BlockedType, validate_event};
 
 /// Represents a request from the relay
 #[derive(Deserialize)]
@@ -17,7 +20,6 @@ struct Request {
     type_field: String,
     event: Event,
 }
-
 
 /// Represents the response we provide back to the relay
 #[derive(Serialize)]
@@ -30,9 +32,8 @@ struct Response {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-
     // Load config
-    let config = match load_config("/etc/chief.toml") {
+    let config = match load_config("/etc/chief/config.toml") {
         Ok(cfg) => cfg,
         Err(e) => {
             eprintln!("Failed to load config: {:?}", e);
@@ -40,28 +41,38 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    // Connect to the database
-    let (client, connection) = tokio_postgres::connect(
-        format!(
-            "host={} port={} user={} password={} dbname={}",
-            config.database.host,
-            config.database.port,
-            config.database.user,
-            config.database.password,
-            config.database.dbname
+    // Select either JSON file or DB datasource, configured in the config.toml file
+    let data_source = if config.datasource_mode == DataSource::DB {
+        // Set up a database as the datasource
+        let (client, connection) = tokio_postgres::connect(
+            format!(
+                "host={} port={} user={} password={} dbname={}",
+                config.database.host,
+                config.database.port,
+                config.database.user,
+                config.database.password,
+                config.database.dbname
+            )
+            .as_str(),
+            NoTls,
         )
-        .as_str(),
-        NoTls,
-    )
-    .await?;
+        .await?;
 
-    // The connection object performs the actual communication with the database,
-    // so spawn it off to run on its own.
-    tokio::spawn(async move {
-        if let Err(e) = connection.await {
-            eprintln!("connection error: {}", e);
-        }
-    });
+        // The connection object performs the actual communication with the database,
+        // so spawn it off to run on its own.
+        tokio::spawn(async move {
+            if let Err(e) = connection.await {
+                eprintln!("connection error: {}", e);
+            }
+        });
+
+        Box::new(client) as Box<dyn validation::ValidationDataSource>
+    } else {
+        // Set up a JSON file as the datasource
+        let json_data_source =
+            JsonDataSource::new_from_file(config.json.file_path.as_str())?;
+        Box::new(json_data_source) as Box<dyn ValidationDataSource>
+    };
 
     // Set up stdin and stdout handles
     let mut reader = BufReader::new(stdin()).lines();
@@ -85,17 +96,32 @@ async fn main() -> Result<(), Box<dyn Error>> {
         };
 
         // Validates if the event should be persisted or not against a set of filters and modifies the response thereafter
-        match validate_event(&client, &req.event, &config.filters).await {
+        match validate_event(&*data_source, &req.event, &config.filters).await {
             Ok(Some((BlockedType::Pubkey, value))) => {
-                res.msg = Some(String::from("public key does not have permission to write to relay"));
-                println!("public key {} blocked from writing to relay", value);
+                res.msg = Some(String::from(
+                    "public key does not have permission to write to relay",
+                ));
+                let blocked_pubkey = if let Some(val) = value {
+                    val.to_owned()
+                } else {
+                    String::from("")
+                };
+                println!(
+                    "public key {} blocked from writing to relay",
+                    blocked_pubkey
+                );
             }
             Ok(Some((BlockedType::Kind, value))) => {
                 res.msg = Some(String::from("event kind blocked by relay"));
-                println!("kind {} not accepted", value);
+                let blocked_kind = if let Some(kind) = value {
+                    kind.to_owned()
+                } else {
+                    String::from("")
+                };
+                println!("kind {} not accepted", blocked_kind);
             }
-            Ok(Some((BlockedType::Word, value))) => {
-                println!("blacklisted word {}", value);
+            Ok(Some((BlockedType::Word, _))) => {
+                println!("blacklisted word");
             }
             Ok(None) => {
                 res.action = String::from("accept");

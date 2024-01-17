@@ -1,44 +1,44 @@
 # Chief
 
-Chief is a write policy plugin for Strfry which is a nostr relay software.
-It enables blacklisting of public keys, kind numbers and specific words and sentences.
+Chief is a write policy plugin for [Strfry](https://github.com/hoytech/strfry) which is a [nostr](https://github.com/nostr-protocol/nostr) relay software.
+It enables relay operators to blacklist or whitelist public keys, event kinds and specific words or sentences.
 
 ## Setup
 
-You'll need to set up a postgresql database somewhere to be able to run this.
+### Compile and configure
 
-### Database
-
-1. Log into the postgresql databsae as the root user and execute the scripts in the `contrib/db` folder.
-
-### The plugin
-
-1. Run `cargo build --release`.
-2. `sudo cp /target/release/chief /usr/local/bin`.
-3. `sudo cp example-config.toml /etc/chief.toml`. This path is currently hardcoded and cannot be changed.
-4. Edit the database properties in the chief.toml file.
-5. Set the path of the chief executable in the stryfry config (writePolicy.plugin) to `/usr/local/bin/chief`.
-
-## Usage
-
-When you want to blacklist something, you'll have to insert a new row into the database. Here are some examples for each of the database tables in use.
-
-### Blacklist a public key
-
-Remember that this must be a hex key and not a npub.
-
-```sql
-INSERT INTO blacklisted_pubkey (pubkey) VALUES ('54a62b4309734f4ea2bff150307af9ff55196988270b5df8a85701503a9802e3');
+1. Compile from source
+   - Run `cargo build --release`.
+2. Put the compiled binary where you want it to run from
+   - E.g. `sudo cp /target/release/chief /usr/local/bin`.
+3. Create a folder in `/etc` where your configuration files will live and copy the example config to that folder
+    1. `sudo mkdir /etc/chief/`
+    2. `sudo cp docs/examples/example-config.toml /etc/chief/config.toml`.
+        - This path is currently hardcoded and cannot be changed.
+4. Configure stryfry to use Chief as the writepolicy
+   - Under "relay.writePolicy", set the plugin to `/usr/local/bin/chief`
+```
+    writePolicy {
+        # If non-empty, path to an executable script that implements the writePolicy plugin logic
+        plugin = "/usr/local/bin/chief"
+    }
 ```
 
-### Blacklist a word
+### Select a datasource
+The datasource contains the public keys, kinds and/or words you want to either whitelist or blacklist.
+This application supports two different datasources: a JSON file or a postgresql database.
 
-```sql
-INSERT INTO blacklisted_words (word) VALUES ('twitter');
-```
+#### JSON
 
-### Blacklist a kind
+To use a JSON file as the datasource, please read [this document](docs/json_datasource.md).
 
-```sql
-INSERT INTO blacklisted_kind (kind) VALUES (1064);
-```
+#### Postgresql database
+
+To use a postgresql database as the datasource, please read [this document](docs/postgresql_datasource.md).
+
+### Filters
+
+The application has three filters: public keys, kinds and content, and each of them can be individually activated or 
+deactivated in the configuration file. For public keys and kinds, you can also choose to either blacklist or whitelist
+the items in the lists by setting the filter_mode to "Blacklist" or "Whitelist". I don't think it makes any sense to 
+whitelist content, so it is always blacklisted.

@@ -1,4 +1,4 @@
-datasource_mode = "DB"
+datasource_mode = "JSON"
 
 [filters]
 public_key = true
@@ -8,11 +8,11 @@ kind_filter_mode = "Blacklist"
 word = false
 
 [database]
-host = "localhost"
-port = "5432"
-user = "chief"
-password = "changeme"
-dbname = "chief"
+host = ""
+port = ""
+user = ""
+password = ""
+dbname = ""
 
 [json]
-file_path = ""
+file_path = "example-data.json"
