@@ -10,7 +10,7 @@ It enables relay operators to blacklist or whitelist public keys, event kinds an
 1. Compile from source
    - Run `cargo build --release`.
 2. Put the compiled binary where you want it to run from
-   - E.g. `sudo cp /target/release/chief /usr/local/bin`.
+   - E.g. `sudo cp target/release/chief /usr/local/bin`.
 3. Create a folder in `/etc` where your configuration files will live and copy the example config to that folder
     1. `sudo mkdir /etc/chief/`
     2. `sudo cp docs/examples/example-config.toml /etc/chief/config.toml`.
