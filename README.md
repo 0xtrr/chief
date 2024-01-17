@@ -1,7 +1,8 @@
 # Chief
 
-Chief is a write policy plugin for [Strfry](https://github.com/hoytech/strfry) which is a [nostr](https://github.com/nostr-protocol/nostr) relay software.
-It enables relay operators to blacklist or whitelist public keys, event kinds and specific words or sentences.
+Chief is a write policy plugin for [Strfry](https://github.com/hoytech/strfry) (which is a [nostr](https://github.com/nostr-protocol/nostr) relay software).
+It enables relay operators to blacklist or whitelist public keys, event kinds and specific words or sentences using either
+a JSON file or a postgresql database.
 
 ## Setup
 
