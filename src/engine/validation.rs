@@ -157,9 +157,11 @@ pub async fn validate_event(
     filters: &FiltersConfig,
     rate_limit: &RateLimit,
 ) -> Result<Option<(BlockedType, Option<String>)>, Box<dyn Error>> {
-    if filters.rate_limit.max_events > 0 {
-        if !rate_limit.is_allowed(event).await {
-            return Ok(Some((BlockedType::RateLimit, None)))
+    if filters.rate_limit.enabled {
+        if filters.rate_limit.max_events > 0 {
+            if !rate_limit.is_allowed(event).await {
+                return Ok(Some((BlockedType::RateLimit, None)))
+            }
         }
     }
 

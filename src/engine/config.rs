@@ -34,6 +34,7 @@ pub enum FilterModeConfig {
 
 #[derive(Copy, Clone, Deserialize)]
 pub struct RateLimitConfig {
+    pub enabled: bool,
     pub max_events: u32,
     pub time_window: u32, // in seconds
 }
