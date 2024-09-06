@@ -7,6 +7,11 @@ kind = true
 kind_filter_mode = "Blacklist"
 word = false
 
+[filters.rate_limit]
+enabled = false
+max_events = 10
+time_window = 60 # in seconds
+
 [database]
 host = "localhost"
 port = "5432"
@@ -15,4 +20,4 @@ password = "changeme"
 dbname = "chief"
 
 [json]
-file_path = ""
+file_path = "/etc/chief/data.json"

@@ -23,11 +23,20 @@ pub struct FiltersConfig {
     pub kind: bool,
     pub kind_filter_mode: FilterModeConfig,
     pub word: bool,
+    pub rate_limit: RateLimitConfig,
 }
+
 #[derive(Copy, Clone, Deserialize, PartialEq, Debug)]
 pub enum FilterModeConfig {
     Blacklist,
     Whitelist,
+}
+
+#[derive(Copy, Clone, Deserialize)]
+pub struct RateLimitConfig {
+    pub enabled: bool,
+    pub max_events: u32,
+    pub time_window: u32, // in seconds
 }
 
 #[derive(Deserialize)]

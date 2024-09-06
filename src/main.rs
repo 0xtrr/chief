@@ -9,9 +9,11 @@ use nostr_sdk::Event;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::process;
+use std::time::Duration;
 use tokio::io::{stdin, stdout, AsyncWriteExt};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio_postgres::{Error as PGError, NoTls};
+use crate::engine::ratelimit::RateLimit;
 
 /// Represents a request from the relay
 #[derive(Deserialize)]
@@ -74,6 +76,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Box::new(json_data_source) as Box<dyn ValidationDataSource>
     };
 
+    let rate_limit_engine = RateLimit::new(
+        config.filters.rate_limit.max_events,
+        Duration::from_secs(config.filters.rate_limit.time_window as u64)
+    );
+
     // Set up stdin and stdout handles
     let mut reader = BufReader::new(stdin()).lines();
     let mut writer = stdout();
@@ -96,7 +103,21 @@ async fn main() -> Result<(), Box<dyn Error>> {
         };
 
         // Validates if the event should be persisted or not against a set of filters and modifies the response thereafter
-        match validate_event(&*data_source, &req.event, &config.filters).await {
+        match validate_event(&*data_source, &req.event, &config.filters, &rate_limit_engine).await {
+            Ok(Some((BlockedType::RateLimit, value))) => {
+                res.msg = Some(String::from(
+                    "rate limited"
+                ));
+                let blocked_pubkey = if let Some(val) = value {
+                    val.to_owned()
+                } else {
+                    String::from("")
+                };
+                println!(
+                    "[BLOCKED] public key {} got rate limited",
+                    blocked_pubkey
+                );
+            }
             Ok(Some((BlockedType::Pubkey, value))) => {
                 res.msg = Some(String::from(
                     "public key does not have permission to write to relay",
@@ -107,7 +128,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     String::from("")
                 };
                 println!(
-                    "public key {} blocked from writing to relay",
+                    "[BLOCKED] public key {} blocked from writing to relay",
                     blocked_pubkey
                 );
             }

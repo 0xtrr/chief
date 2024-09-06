@@ -7,6 +7,11 @@ kind = true
 kind_filter_mode = "Blacklist"
 word = false
 
+[filters.rate_limit]
+enabled = true
+max_events = 10
+time_window = 60 # in seconds
+
 [database]
 host = "localhost"
 port = "5432"
