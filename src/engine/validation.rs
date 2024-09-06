@@ -5,12 +5,14 @@ use std::error::Error;
 use std::future::Future;
 use std::pin::Pin;
 use tokio_postgres::Client;
+use crate::engine::ratelimit::RateLimit;
 
 #[derive(Debug)]
 pub enum BlockedType {
     Pubkey,
     Kind,
     Word,
+    RateLimit,
 }
 
 #[derive(Deserialize)]
@@ -153,7 +155,14 @@ pub async fn validate_event(
     data_source: &dyn ValidationDataSource,
     event: &Event,
     filters: &FiltersConfig,
+    rate_limit: &RateLimit,
 ) -> Result<Option<(BlockedType, Option<String>)>, Box<dyn Error>> {
+    if filters.rate_limit.max_events > 0 {
+        if !rate_limit.is_allowed(event).await {
+            return Ok(Some((BlockedType::RateLimit, None)))
+        }
+    }
+
     // Check if public key validation is activated
     if filters.public_key {
         let publickey_allowed = data_source
