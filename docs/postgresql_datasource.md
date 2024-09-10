@@ -4,12 +4,12 @@ To use a Postgresql database as the datasource, you'll first need to set up post
 Digital Ocean has a bunch of easy to follow guides for this, e.g. [this guide](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-22-04).
 
 ## Database setup
-Log into the postgresql database as the root user and execute the scripts in the [contrib/db](contrib/db) folder, and you should be good to go.
+Log into the postgresql database as the root user and execute the scripts in the [contrib/db](../contrib/db) folder, and you should be good to go.
 
 ## Chief configuration file
 Now we need to ensure that the config file has the correct details. Here is an example of a config file that uses a postgresql database as the datasource.
 ```toml
-datasource_mode = "DB"
+datasource_mode = "Db"
 
 [filters]
 public_key = true

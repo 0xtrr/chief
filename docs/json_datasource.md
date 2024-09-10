@@ -6,7 +6,7 @@ Ensure that `datasource_mode` is set to `JSON` and that `json.file_path` is set 
 in this setup and the kinds does not impact the datasource_mode.
 
 ```toml
-datasource_mode = "JSON"
+datasource_mode = "Json"
 
 [filters]
 public_key = true

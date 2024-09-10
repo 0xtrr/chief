@@ -1,4 +1,4 @@
-datasource_mode = "JSON"
+datasource_mode = "Json"
 
 [filters]
 public_key = true
