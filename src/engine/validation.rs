@@ -31,29 +31,21 @@ impl JsonDataSource {
     }
 }
 
+type ValidationResult = Result<bool, Box<dyn Error>>;
+type ValidationFuture<'a> = Pin<Box<dyn Future<Output = ValidationResult> + Send + 'a>>;
+
 pub trait ValidationDataSource {
     fn is_pubkey_allowed(
         &self,
         pubkey: &str,
         filter_mode: FilterModeConfig,
-    ) -> Pin<Box<dyn Future<Output=Result<bool, Box<dyn Error>>> + Send + '_>>;
-    fn is_kind_allowed(
-        &self,
-        kind: u32,
-        filter_mode: FilterModeConfig,
-    ) -> Pin<Box<dyn Future<Output=Result<bool, Box<dyn Error>>> + Send + '_>>;
-    fn is_content_allowed(
-        &self,
-        content: &str,
-    ) -> Pin<Box<dyn Future<Output=Result<bool, Box<dyn Error>>> + Send + '_>>;
+    ) -> ValidationFuture<'_>;
+    fn is_kind_allowed(&self, kind: u32, filter_mode: FilterModeConfig) -> ValidationFuture<'_>;
+    fn is_content_allowed(&self, content: &str) -> ValidationFuture<'_>;
 }
 
 impl ValidationDataSource for tokio_postgres::Client {
-    fn is_pubkey_allowed(
-        &self,
-        pubkey: &str,
-        filter_mode: FilterModeConfig,
-    ) -> Pin<Box<dyn Future<Output=Result<bool, Box<dyn Error>>> + Send + '_>> {
+    fn is_pubkey_allowed(&self, pubkey: &str, filter_mode: FilterModeConfig) -> ValidationFuture {
         let pubkey = pubkey.to_owned();
         Box::pin(async move {
             let params: &[&(dyn tokio_postgres::types::ToSql + Sync)] = &[&pubkey];
@@ -63,15 +55,11 @@ impl ValidationDataSource for tokio_postgres::Client {
                 params,
                 filter_mode,
             )
-                .await
+            .await
         })
     }
 
-    fn is_kind_allowed(
-        &self,
-        kind: u32,
-        filter_mode: FilterModeConfig,
-    ) -> Pin<Box<dyn Future<Output=Result<bool, Box<dyn Error>>> + Send + '_>> {
+    fn is_kind_allowed(&self, kind: u32, filter_mode: FilterModeConfig) -> ValidationFuture {
         Box::pin(async move {
             // We have to cast the event kind u32 to i32 to make tokio_postgres happy
             let i32_kind = kind as i32;
@@ -83,14 +71,11 @@ impl ValidationDataSource for tokio_postgres::Client {
                 params,
                 filter_mode,
             )
-                .await
+            .await
         })
     }
 
-    fn is_content_allowed(
-        &self,
-        content: &str,
-    ) -> Pin<Box<dyn Future<Output=Result<bool, Box<dyn Error>>> + Send + '_>> {
+    fn is_content_allowed(&self, content: &str) -> ValidationFuture {
         let content = content.to_owned();
         Box::pin(async move {
             let word_stmt = self
@@ -107,11 +92,7 @@ impl ValidationDataSource for tokio_postgres::Client {
 }
 
 impl ValidationDataSource for JsonDataSource {
-    fn is_pubkey_allowed(
-        &self,
-        pubkey: &str,
-        filter_mode: FilterModeConfig,
-    ) -> Pin<Box<dyn Future<Output=Result<bool, Box<dyn Error>>> + Send + '_>> {
+    fn is_pubkey_allowed(&self, pubkey: &str, filter_mode: FilterModeConfig) -> ValidationFuture {
         let pubkey = pubkey.to_owned();
 
         Box::pin(async move {
@@ -122,11 +103,7 @@ impl ValidationDataSource for JsonDataSource {
         })
     }
 
-    fn is_kind_allowed(
-        &self,
-        kind: u32,
-        filter_mode: FilterModeConfig,
-    ) -> Pin<Box<dyn Future<Output=Result<bool, Box<dyn Error>>> + Send + '_>> {
+    fn is_kind_allowed(&self, kind: u32, filter_mode: FilterModeConfig) -> ValidationFuture {
         Box::pin(async move {
             match filter_mode {
                 FilterModeConfig::Blacklist => Ok(!self.kinds.contains(&kind)),
@@ -135,10 +112,7 @@ impl ValidationDataSource for JsonDataSource {
         })
     }
 
-    fn is_content_allowed(
-        &self,
-        content: &str,
-    ) -> Pin<Box<dyn Future<Output=Result<bool, Box<dyn Error>>> + Send + '_>> {
+    fn is_content_allowed(&self, content: &str) -> ValidationFuture {
         let content = content.to_owned();
         Box::pin(async move {
             let contains_blacklisted_word = self
@@ -157,7 +131,10 @@ pub async fn validate_event(
     filters: &FiltersConfig,
     rate_limit: &RateLimit,
 ) -> Result<Option<BlockedType>, Box<dyn Error>> {
-    if filters.rate_limit.enabled && filters.rate_limit.max_events > 0 && !rate_limit.is_allowed(event).await {
+    if filters.rate_limit.enabled
+        && filters.rate_limit.max_events > 0
+        && !rate_limit.is_allowed(event).await
+    {
         return Ok(Some(BlockedType::RateLimit));
     }
 
