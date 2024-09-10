@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use std::fmt::Formatter;
 use std::fs;
 use tokio::io;
 
@@ -66,12 +67,20 @@ pub enum ConfigError {
     ParseError(toml::de::Error),
 }
 
+impl std::fmt::Display for ConfigError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ConfigError::ReadError(e) => write!(f, "Error reading configuration file: {}", e),
+            ConfigError::ParseError(e) => write!(f, "Error parsing configuration file: {}", e),
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine::validation::JsonDataSource;
     use std::env;
     use std::path::PathBuf;
-    use crate::engine::validation::JsonDataSource;
 
     #[test]
     fn test_load_valid_config() {
@@ -173,7 +182,10 @@ mod tests {
         let json_datasource = JsonDataSource::new_from_file(path).unwrap();
 
         assert_eq!(json_datasource.pubkeys.len(), 1);
-        assert_eq!(json_datasource.pubkeys.first().unwrap(), "d30effaa4af9d1522381866487bb0009203d687d44278dea3826be1ea64c46a8");
+        assert_eq!(
+            json_datasource.pubkeys.first().unwrap(),
+            "d30effaa4af9d1522381866487bb0009203d687d44278dea3826be1ea64c46a8"
+        );
 
         assert_eq!(json_datasource.kinds.len(), 1);
         assert_eq!(json_datasource.kinds.first().unwrap(), &1u32);
