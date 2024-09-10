@@ -50,7 +50,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     };
 
     // Select either JSON file or DB datasource, configured in the config.toml file
-    let data_source = if config.datasource_mode == DataSource::DB {
+    let data_source = if config.datasource_mode == DataSource::Db {
         // Set up a database as the datasource
         let (client, connection) = tokio_postgres::connect(
             format!(

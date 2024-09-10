@@ -13,8 +13,8 @@ pub struct Config {
 
 #[derive(Deserialize, PartialEq, Debug)]
 pub enum DataSource {
-    JSON,
-    DB,
+    Json,
+    Db,
 }
 
 #[derive(Copy, Clone, Deserialize)]
@@ -91,7 +91,7 @@ mod tests {
 
         let config = load_config(path).unwrap();
 
-        assert_eq!(config.datasource_mode, DataSource::DB);
+        assert_eq!(config.datasource_mode, DataSource::Db);
         assert_eq!(config.filters.public_key, true);
         assert_eq!(
             config.filters.public_key_filter_mode,
@@ -119,7 +119,7 @@ mod tests {
 
         let config = load_config(path).unwrap();
 
-        assert_eq!(config.datasource_mode, DataSource::JSON);
+        assert_eq!(config.datasource_mode, DataSource::Json);
 
         assert_eq!(config.filters.public_key, true);
         assert_eq!(
