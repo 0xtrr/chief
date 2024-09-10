@@ -1,7 +1,7 @@
+use nostr_sdk::Event;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use nostr_sdk::Event;
 use tokio::sync::Mutex;
 
 pub struct RateLimit {
