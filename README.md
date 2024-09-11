@@ -16,7 +16,7 @@ a JSON file or a postgresql database.
     1. `sudo mkdir /etc/chief/`
     2. `sudo cp docs/examples/example-config.toml /etc/chief/config.toml`.
         - This path is currently hardcoded and cannot be changed.
-4. Configure strfry to use Chief as the writepolicy
+4. Configure strfry to use Chief as the write policy
    - Under "relay.writePolicy", set the plugin to `/usr/local/bin/chief`
 ```
     writePolicy {
