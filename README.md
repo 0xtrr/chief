@@ -39,7 +39,7 @@ To use a postgresql database as the datasource, please read [this document](docs
 
 ### Filters
 
-The application has three filters: public keys, kinds and content, and each of them can be individually activated or 
-deactivated in the configuration file. For public keys and kinds, you can also choose to either blacklist or whitelist
-the items in the lists by setting the filter_mode to "Blacklist" or "Whitelist". I don't think it makes any sense to 
-whitelist content, so it is always blacklisted.
+- Pubkey filter to blacklist or whitelist specific public keys
+- Kinds filter to blacklist or whitelist specific note kinds
+- Content filter to blacklist certain words and/or sentences
+- Rate limiting filter to only allow a certain amount of events in a specific time period (measured in seconds)
