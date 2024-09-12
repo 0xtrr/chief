@@ -1,4 +1,4 @@
-datasource_mode = "DB"
+datasource_mode = "Db"
 
 [filters]
 public_key = true
