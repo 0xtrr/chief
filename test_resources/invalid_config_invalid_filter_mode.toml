@@ -1,9 +1,21 @@
-[filters]
-public_key = true
-public_key_filter_mode = "InvalidFilterMode"
-kind = true
-kind_filter_mode = "InvalidFilterMode"
-word = false
+datasource_mode = "Db"
+
+[filters.pubkey]
+enabled = true
+filter_mode = "NotAValidFilterMode"
+
+[filters.kinds]
+enabled = true
+filter_mode = "Blacklist"
+
+[filters.rate_limit]
+enabled = false
+max_events = 10
+time_window = 60 # in seconds
+
+[filters.content]
+enabled = false
+validated_kinds = [1] # Choose which kinds you want to validate the content field for
 
 [database]
 host = "localhost"
@@ -11,3 +23,6 @@ port = "5432"
 user = "chief"
 password = "changeme"
 dbname = "chief"
+
+[json]
+file_path = "/etc/chief/data.json"

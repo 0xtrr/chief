@@ -4,7 +4,7 @@ datasource_mode = "Db"
 enabled = true
 filter_mode = "Whitelist"
 
-[filters.kind]
+[filters.kinds]
 enabled = true
 filter_mode = "Blacklist"
 
@@ -25,4 +25,4 @@ password = "changeme"
 dbname = "chief"
 
 [json]
-file_path = "/etc/chief/data.json"
+file_path = ""

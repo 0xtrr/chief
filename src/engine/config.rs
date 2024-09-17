@@ -17,27 +17,43 @@ pub enum DataSource {
     Db,
 }
 
-#[derive(Copy, Clone, Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct FiltersConfig {
-    pub public_key: bool,
-    pub public_key_filter_mode: FilterModeConfig,
-    pub kind: bool,
-    pub kind_filter_mode: FilterModeConfig,
-    pub word: bool,
+    pub pubkey: PubkeyFilterConfig,
+    pub kinds: KindsFilterConfig,
+    pub content: ContentFilterConfig,
     pub rate_limit: RateLimitConfig,
 }
 
-#[derive(Copy, Clone, Deserialize, PartialEq, Debug)]
+#[derive(Clone, Deserialize, PartialEq, Debug)]
 pub enum FilterModeConfig {
     Blacklist,
     Whitelist,
 }
 
-#[derive(Copy, Clone, Deserialize)]
+#[derive(Clone, Deserialize)]
+pub struct PubkeyFilterConfig {
+    pub enabled: bool,
+    pub filter_mode: FilterModeConfig,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct KindsFilterConfig {
+    pub enabled: bool,
+    pub filter_mode: FilterModeConfig,
+}
+
+#[derive(Clone, Deserialize)]
 pub struct RateLimitConfig {
     pub enabled: bool,
     pub max_events: u32,
     pub time_window: u32, // in seconds
+}
+
+#[derive(Clone, Deserialize)]
+pub struct ContentFilterConfig {
+    pub enabled: bool,
+    pub validated_kinds: Vec<u32>,
 }
 
 #[derive(Deserialize)]
@@ -86,20 +102,25 @@ mod tests {
     fn test_load_valid_config() {
         let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
         let mut config_path = PathBuf::from(manifest_dir);
-        config_path.push("test_resources/valid_config.toml");
+        config_path.push("test_resources/valid_config_postgres.toml");
         let path = config_path.to_str().unwrap();
 
         let config = load_config(path).unwrap();
 
         assert_eq!(config.datasource_mode, DataSource::Db);
-        assert_eq!(config.filters.public_key, true);
-        assert_eq!(
-            config.filters.public_key_filter_mode,
-            FilterModeConfig::Whitelist
-        );
-        assert_eq!(config.filters.kind, true);
-        assert_eq!(config.filters.kind_filter_mode, FilterModeConfig::Blacklist);
-        assert_eq!(config.filters.word, false);
+
+        assert_eq!(config.filters.pubkey.enabled, true);
+        assert_eq!(config.filters.pubkey.filter_mode, FilterModeConfig::Whitelist);
+
+        assert_eq!(config.filters.kinds.enabled, true);
+        assert_eq!(config.filters.kinds.filter_mode, FilterModeConfig::Blacklist);
+
+        assert_eq!(config.filters.rate_limit.enabled, false);
+        assert_eq!(config.filters.rate_limit.max_events, 10);
+        assert_eq!(config.filters.rate_limit.time_window, 60);
+
+        assert_eq!(config.filters.content.enabled, false);
+        assert_eq!(config.filters.content.validated_kinds, [1]);
 
         assert_eq!(config.database.host, "localhost");
         assert_eq!(config.database.port, "5432");
@@ -121,14 +142,18 @@ mod tests {
 
         assert_eq!(config.datasource_mode, DataSource::Json);
 
-        assert_eq!(config.filters.public_key, true);
-        assert_eq!(
-            config.filters.public_key_filter_mode,
-            FilterModeConfig::Whitelist
-        );
-        assert_eq!(config.filters.kind, true);
-        assert_eq!(config.filters.kind_filter_mode, FilterModeConfig::Blacklist);
-        assert_eq!(config.filters.word, false);
+        assert_eq!(config.filters.pubkey.enabled, true);
+        assert_eq!(config.filters.pubkey.filter_mode, FilterModeConfig::Whitelist);
+
+        assert_eq!(config.filters.kinds.enabled, true);
+        assert_eq!(config.filters.kinds.filter_mode, FilterModeConfig::Blacklist);
+
+        assert_eq!(config.filters.rate_limit.enabled, false);
+        assert_eq!(config.filters.rate_limit.max_events, 10);
+        assert_eq!(config.filters.rate_limit.time_window, 60);
+
+        assert_eq!(config.filters.content.enabled, false);
+        assert_eq!(config.filters.content.validated_kinds, [1]);
 
         assert_eq!(config.database.host, "");
         assert_eq!(config.database.port, "");
@@ -136,7 +161,7 @@ mod tests {
         assert_eq!(config.database.password, "");
         assert_eq!(config.database.dbname, "");
 
-        assert_eq!(config.json.file_path, "example-data.json");
+        assert_eq!(config.json.file_path, "/etc/chief/data.json");
     }
 
     #[test]
