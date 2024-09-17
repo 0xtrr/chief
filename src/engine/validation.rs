@@ -161,13 +161,18 @@ pub async fn validate_event(
         }
     }
 
-    // Check if content validation is activated and if so, that event kind should be validated
-    if filters.content.enabled && filters.content.validated_kinds.contains(&event.kind.as_u32()) {
-        let content_allowed = data_source
-            .is_content_allowed(event.content.as_str())
-            .await?;
-        if !content_allowed {
-            return Ok(Some(BlockedType::Word));
+    // Check if content validation is activated
+    if filters.content.enabled {
+        // Validate content only if we get a match with the event kind or the validated kinds list is empty
+        if filters.content.validated_kinds.contains(&event.kind.as_u32())
+            || filters.content.validated_kinds.is_empty()
+        {
+            let content_allowed = data_source
+                .is_content_allowed(event.content.as_str())
+                .await?;
+            if !content_allowed {
+                return Ok(Some(BlockedType::Word));
+            }
         }
     }
 
