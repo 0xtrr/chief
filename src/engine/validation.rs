@@ -164,7 +164,10 @@ pub async fn validate_event(
     // Check if content validation is activated
     if filters.content.enabled {
         // Validate content only if we get a match with the event kind or the validated kinds list is empty
-        if filters.content.validated_kinds.contains(&event.kind.as_u32())
+        if filters
+            .content
+            .validated_kinds
+            .contains(&event.kind.as_u32())
             || filters.content.validated_kinds.is_empty()
         {
             let content_allowed = data_source

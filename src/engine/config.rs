@@ -110,7 +110,10 @@ mod tests {
         assert_eq!(config.datasource_mode, DataSource::Db);
 
         assert_eq!(config.filters.pubkey.enabled, true);
-        assert_eq!(config.filters.pubkey.filter_mode, FilterModeConfig::Whitelist);
+        assert_eq!(
+            config.filters.pubkey.filter_mode,
+            FilterModeConfig::Whitelist
+        );
 
         assert_eq!(config.filters.kind.enabled, true);
         assert_eq!(config.filters.kind.filter_mode, FilterModeConfig::Blacklist);
@@ -143,7 +146,10 @@ mod tests {
         assert_eq!(config.datasource_mode, DataSource::Json);
 
         assert_eq!(config.filters.pubkey.enabled, true);
-        assert_eq!(config.filters.pubkey.filter_mode, FilterModeConfig::Whitelist);
+        assert_eq!(
+            config.filters.pubkey.filter_mode,
+            FilterModeConfig::Whitelist
+        );
 
         assert_eq!(config.filters.kind.enabled, true);
         assert_eq!(config.filters.kind.filter_mode, FilterModeConfig::Blacklist);
