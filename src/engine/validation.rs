@@ -152,9 +152,9 @@ pub async fn validate_event(
     }
 
     // Check if kinf validation is activated
-    if filters.kinds.enabled {
+    if filters.kind.enabled {
         let kind_allowed = data_source
-            .is_kind_allowed(event.kind.as_u32(), filters.kinds.filter_mode.to_owned())
+            .is_kind_allowed(event.kind.as_u32(), filters.kind.filter_mode.to_owned())
             .await?;
         if !kind_allowed {
             return Ok(Some(BlockedType::Kind));

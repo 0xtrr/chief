@@ -20,7 +20,7 @@ pub enum DataSource {
 #[derive(Clone, Deserialize)]
 pub struct FiltersConfig {
     pub pubkey: PubkeyFilterConfig,
-    pub kinds: KindsFilterConfig,
+    pub kind: KindFilterConfig,
     pub content: ContentFilterConfig,
     pub rate_limit: RateLimitConfig,
 }
@@ -38,7 +38,7 @@ pub struct PubkeyFilterConfig {
 }
 
 #[derive(Clone, Deserialize)]
-pub struct KindsFilterConfig {
+pub struct KindFilterConfig {
     pub enabled: bool,
     pub filter_mode: FilterModeConfig,
 }
@@ -112,8 +112,8 @@ mod tests {
         assert_eq!(config.filters.pubkey.enabled, true);
         assert_eq!(config.filters.pubkey.filter_mode, FilterModeConfig::Whitelist);
 
-        assert_eq!(config.filters.kinds.enabled, true);
-        assert_eq!(config.filters.kinds.filter_mode, FilterModeConfig::Blacklist);
+        assert_eq!(config.filters.kind.enabled, true);
+        assert_eq!(config.filters.kind.filter_mode, FilterModeConfig::Blacklist);
 
         assert_eq!(config.filters.rate_limit.enabled, false);
         assert_eq!(config.filters.rate_limit.max_events, 10);
@@ -145,8 +145,8 @@ mod tests {
         assert_eq!(config.filters.pubkey.enabled, true);
         assert_eq!(config.filters.pubkey.filter_mode, FilterModeConfig::Whitelist);
 
-        assert_eq!(config.filters.kinds.enabled, true);
-        assert_eq!(config.filters.kinds.filter_mode, FilterModeConfig::Blacklist);
+        assert_eq!(config.filters.kind.enabled, true);
+        assert_eq!(config.filters.kind.filter_mode, FilterModeConfig::Blacklist);
 
         assert_eq!(config.filters.rate_limit.enabled, false);
         assert_eq!(config.filters.rate_limit.max_events, 10);

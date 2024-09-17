@@ -4,7 +4,7 @@ datasource_mode = "Db"
 enabled = true
 filter_mode = "Whitelist"
 
-[filters.kinds]
+[filters.kind]
 enabled = true
 filter_mode = "Blacklist"
 
