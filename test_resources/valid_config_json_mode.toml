@@ -1,16 +1,21 @@
 datasource_mode = "Json"
 
-[filters]
-public_key = true
-public_key_filter_mode = "Whitelist"
-kind = true
-kind_filter_mode = "Blacklist"
-word = false
+[filters.pubkey]
+enabled = true
+filter_mode = "Whitelist"
+
+[filters.kind]
+enabled = true
+filter_mode = "Blacklist"
 
 [filters.rate_limit]
-enabled = true
+enabled = false
 max_events = 10
 time_window = 60 # in seconds
+
+[filters.content]
+enabled = false
+validated_kinds = [1] # Choose which kinds you want to validate the content field for
 
 [database]
 host = ""
@@ -20,4 +25,4 @@ password = ""
 dbname = ""
 
 [json]
-file_path = "example-data.json"
+file_path = "/etc/chief/data.json"

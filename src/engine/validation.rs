@@ -139,11 +139,11 @@ pub async fn validate_event(
     }
 
     // Check if public key validation is activated
-    if filters.public_key {
+    if filters.pubkey.enabled {
         let publickey_allowed = data_source
             .is_pubkey_allowed(
                 event.pubkey.to_string().as_str(),
-                filters.public_key_filter_mode,
+                filters.pubkey.filter_mode.to_owned(),
             )
             .await?;
         if !publickey_allowed {
@@ -152,9 +152,9 @@ pub async fn validate_event(
     }
 
     // Check if kinf validation is activated
-    if filters.kind {
+    if filters.kind.enabled {
         let kind_allowed = data_source
-            .is_kind_allowed(event.kind.as_u32(), filters.kind_filter_mode)
+            .is_kind_allowed(event.kind.as_u32(), filters.kind.filter_mode.to_owned())
             .await?;
         if !kind_allowed {
             return Ok(Some(BlockedType::Kind));
@@ -162,12 +162,20 @@ pub async fn validate_event(
     }
 
     // Check if content validation is activated
-    if filters.word {
-        let content_allowed = data_source
-            .is_content_allowed(event.content.as_str())
-            .await?;
-        if !content_allowed {
-            return Ok(Some(BlockedType::Word));
+    if filters.content.enabled {
+        // Validate content only if we get a match with the event kind or the validated kinds list is empty
+        if filters
+            .content
+            .validated_kinds
+            .contains(&event.kind.as_u32())
+            || filters.content.validated_kinds.is_empty()
+        {
+            let content_allowed = data_source
+                .is_content_allowed(event.content.as_str())
+                .await?;
+            if !content_allowed {
+                return Ok(Some(BlockedType::Word));
+            }
         }
     }
 
