@@ -134,7 +134,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 );
             }
             Ok(Some(BlockedType::Word)) => {
-                print_blocked_message(&req, "blacklisted content");
+                res.msg = Some(String::from("blocked content"));
+                print_blocked_message(&req, "blocked content");
             }
             Ok(None) => {
                 res.action = String::from("accept");
