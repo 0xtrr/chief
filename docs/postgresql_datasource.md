@@ -11,19 +11,29 @@ Now we need to ensure that the config file has the correct details. Here is an e
 ```toml
 datasource_mode = "Db"
 
-[filters]
-public_key = true
-public_key_filter_mode = "Whitelist"
-kind = true
-kind_filter_mode = "Blacklist"
-word = false
+[filters.pubkey]
+enabled = true # enable or disable public key filter
+filter_mode = "Whitelist" # Whitelist or Blacklist
+
+[filters.kind]
+enabled = true # enable or disable kind filter
+filter_mode = "Blacklist" # Whitelist or Blacklist
+
+[filters.rate_limit]
+enabled = false # enable or disable rate limiting feature
+max_events = 10 # maximum number of events in the timeframe specified below
+time_window = 60 # timeframe for maximum events (in seconds)
+
+[filters.content]
+enabled = false # enable or disable content filtering
+validated_kinds = [1] # choose which event kinds you want to validate the content field for
 
 [database]
-host = "localhost"
-port = "5432"
-user = "chief"
-password = "changeme"
-dbname = "chief"
+host = "localhost" # postgresql database url
+port = "5432" # postgresql database port
+user = "chief" # database user
+password = "changeme" # database password
+dbname = "chief" # database table name
 
 [json]
 file_path = ""
